@@ -147,8 +147,15 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
             {!notificationFlagEnabled ? (
               <div className="timer-screen__notification-banner timer-screen__notification-banner--off">
                 <span className="timer-screen__notification-text">
-                  通知はオフです。設定ファイル（.txt）に NOTIFICATION=on を記述し「設定を読み込み」で有効にできます。オフにする場合は NOTIFICATION=off。
+                  通知はオフです。下の「通知をオンにする」で有効にできます。設定ファイルから読み込むことも可能です。
                 </span>
+                <button
+                  type="button"
+                  className="button button--ghost button--small"
+                  onClick={() => onNotificationFlagChange(true)}
+                >
+                  通知をオンにする
+                </button>
                 <button
                   type="button"
                   className="button button--ghost button--small"
@@ -165,6 +172,13 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 <button
                   type="button"
                   className="button button--ghost button--small"
+                  onClick={() => onNotificationFlagChange(false)}
+                >
+                  通知をオフにする
+                </button>
+                <button
+                  type="button"
+                  className="button button--ghost button--small"
                   onClick={handleLoadConfigClick}
                 >
                   設定を読み込み
@@ -175,7 +189,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                 <span className="timer-screen__notification-text">
                   {notificationPermission === 'denied'
                     ? '通知がブロックされています。ブラウザの設定（アドレスバー左のアイコン → サイトの設定）から「通知」を許可してください。'
-                    : '通知フラグはONです。通知を受け取るには、下の「通知を有効にする」をクリックし、ブラウザの許可ダイアログで「許可」を選んでください。'}
+                    : '通知はオンです。通知を受け取るには、下の「通知を有効にする」をクリックし、ブラウザの許可ダイアログで「許可」を選んでください。'}
                 </span>
                 <button
                   type="button"
@@ -183,6 +197,13 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   onClick={() => void onRequestNotificationPermission()}
                 >
                   通知を有効にする
+                </button>
+                <button
+                  type="button"
+                  className="button button--ghost button--small"
+                  onClick={() => onNotificationFlagChange(false)}
+                >
+                  通知をオフにする
                 </button>
               </div>
             ) : (
@@ -201,6 +222,13 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
                   onClick={onTestNotification}
                 >
                   テスト通知
+                </button>
+                <button
+                  type="button"
+                  className="button button--ghost button--small"
+                  onClick={() => onNotificationFlagChange(false)}
+                >
+                  通知をオフにする
                 </button>
               </div>
             )}
