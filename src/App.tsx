@@ -23,7 +23,7 @@ export type TimerState = {
   isCycleHit: boolean
 }
 
-const PRE_START_SECONDS = 40
+const PRE_START_SECONDS = 60
 const MEMO_STORAGE_KEY = 'dota_timer_memo'
 const ICON_CONFIG_KEY = 'dota_timer_icons'
 const NOTIFICATION_FLAG_KEY = 'dota_timer_notification_flag'
