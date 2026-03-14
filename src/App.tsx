@@ -24,6 +24,7 @@ export type TimerState = {
 
 const PRE_START_SECONDS = 40
 const MEMO_STORAGE_KEY = 'dota_timer_memo'
+const ICON_CONFIG_KEY = 'dota_timer_icons'
 
 function getStoredMemo(): string {
   if (typeof window === 'undefined') return ''
@@ -46,6 +47,29 @@ function setStoredMemo(value: string): void {
   }
   try {
     sessionStorage.setItem(MEMO_STORAGE_KEY, value)
+  } catch {
+    /* ignore */
+  }
+}
+
+function getStoredIconConfig(): Record<string, string> {
+  if (typeof window === 'undefined') return {}
+  try {
+    const raw = localStorage.getItem(ICON_CONFIG_KEY)
+    if (!raw) return {}
+    const parsed = JSON.parse(raw) as unknown
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed))
+      return parsed as Record<string, string>
+    return {}
+  } catch {
+    return {}
+  }
+}
+
+function setStoredIconConfig(config: Record<string, string>): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(ICON_CONFIG_KEY, JSON.stringify(config))
   } catch {
     /* ignore */
   }
@@ -88,10 +112,17 @@ function App() {
   const [screenState, setScreenState] = useState<ScreenState>('start')
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [memo, setMemo] = useState(getStoredMemo)
+  const [iconConfig, setIconConfig] = useState<Record<string, string>>(
+    getStoredIconConfig,
+  )
 
   useEffect(() => {
     setStoredMemo(memo)
   }, [memo])
+
+  useEffect(() => {
+    setStoredIconConfig(iconConfig)
+  }, [iconConfig])
 
   useEffect(() => {
     if (screenState !== 'running') return
@@ -138,6 +169,15 @@ function App() {
     setElapsedSeconds((prev) => Math.max(0, prev + delta))
   }
 
+  const handleIconChange = (timerId: string, dataUrl: string) => {
+    setIconConfig((prev) => {
+      const next = { ...prev }
+      if (dataUrl) next[timerId] = dataUrl
+      else delete next[timerId]
+      return next
+    })
+  }
+
   return (
     <div className={`app app--${dayPhase}`}>
       {screenState === 'start' ? (
@@ -150,6 +190,8 @@ function App() {
           preStartRemaining={preStartRemaining}
           memo={memo}
           onMemoChange={setMemo}
+          iconConfig={iconConfig}
+          onIconChange={handleIconChange}
           onReset={handleReset}
           onAdjustSeconds={handleAdjustSeconds}
         />

@@ -1,7 +1,7 @@
 import React, { useRef } from 'react'
 
 import type { DayPhase, TimerState } from '../App'
-import { readFileAsText, saveMemoToFile } from '../utils/memoFile'
+import { readFileAsDataUrl, readFileAsText, saveMemoToFile } from '../utils/memoFile'
 import { TimerIcon } from './TimerIcon'
 
 type TimerScreenProps = {
@@ -11,6 +11,8 @@ type TimerScreenProps = {
   preStartRemaining?: number
   memo: string
   onMemoChange: (value: string) => void
+  iconConfig: Record<string, string>
+  onIconChange: (timerId: string, dataUrl: string) => void
   onReset: () => void
   onAdjustSeconds: (delta: number) => void
 }
@@ -22,10 +24,14 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   preStartRemaining,
   memo,
   onMemoChange,
+  iconConfig,
+  onIconChange,
   onReset,
   onAdjustSeconds,
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const iconFileInputRef = useRef<HTMLInputElement>(null)
+  const iconTargetIdRef = useRef<string | null>(null)
   const safeTotal = Math.max(0, Math.floor(totalElapsedSeconds))
   const totalM = Math.floor(safeTotal / 60)
   const totalS = safeTotal % 60
@@ -45,6 +51,21 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
 
   const handleSaveToFile = () => {
     saveMemoToFile(memo)
+  }
+
+  const handleIconSettingClick = (timerId: string) => {
+    iconTargetIdRef.current = timerId
+    iconFileInputRef.current?.click()
+  }
+
+  const handleIconFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const timerId = iconTargetIdRef.current
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    iconTargetIdRef.current = null
+    if (!timerId || !file) return
+    const dataUrl = await readFileAsDataUrl(file)
+    if (dataUrl) onIconChange(timerId, dataUrl)
   }
 
   return (
@@ -79,14 +100,42 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
           </button>
         </div>
 
+        <input
+          ref={iconFileInputRef}
+          type="file"
+          accept="image/*"
+          className="timer-screen__file-input"
+          aria-hidden
+          onChange={handleIconFileSelect}
+        />
         <div className="timer-grid">
           {timers.map((timer) => (
-            <TimerIcon
-              key={timer.id}
-              timer={timer}
-              isDayNight={timer.id === 'daynight'}
-              dayPhase={timer.id === 'daynight' ? dayPhase : undefined}
-            />
+            <div key={timer.id} className="timer-grid__item">
+              <TimerIcon
+                timer={timer}
+                isDayNight={timer.id === 'daynight'}
+                dayPhase={timer.id === 'daynight' ? dayPhase : undefined}
+                customIconSrc={iconConfig[timer.id]}
+              />
+              <div className="timer-icon-actions">
+                <button
+                  type="button"
+                  className="button button--ghost button--tiny"
+                  onClick={() => handleIconSettingClick(timer.id)}
+                >
+                  アイコンを設定
+                </button>
+                {iconConfig[timer.id] && (
+                  <button
+                    type="button"
+                    className="button button--ghost button--tiny"
+                    onClick={() => onIconChange(timer.id, '')}
+                  >
+                    デフォルトに戻す
+                  </button>
+                )}
+              </div>
+            </div>
           ))}
         </div>
 

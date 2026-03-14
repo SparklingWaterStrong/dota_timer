@@ -6,6 +6,8 @@ type TimerIconProps = {
   timer: TimerState
   isDayNight?: boolean
   dayPhase?: DayPhase
+  /** カスタムアイコン（Data URL または URL）。未指定ならデフォルト画像 */
+  customIconSrc?: string | null
 }
 
 function formatTime(seconds: number) {
@@ -15,10 +17,18 @@ function formatTime(seconds: number) {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
+const DEFAULT_ICON_MAP: Record<string, string> = {
+  lotus: 'icons/lotus.png',
+  wisdom: 'icons/wisdom.png',
+  bounty: 'icons/bounty.png',
+  power: 'icons/power.png',
+}
+
 export const TimerIcon: React.FC<TimerIconProps> = ({
   timer,
   isDayNight,
   dayPhase,
+  customIconSrc,
 }) => {
   const { label, duration, remaining, isCycleHit } = timer
 
@@ -31,13 +41,10 @@ export const TimerIcon: React.FC<TimerIconProps> = ({
   const hue = progress * 120 // 1 => 120 (green), 0 => 0 (red)
   const strokeColor = `hsl(${hue}, 80%, 50%)`
 
-  const iconSrcMap: Record<string, string> = {
-    lotus: 'icons/lotus.png',
-    wisdom: 'icons/wisdom.png',
-    bounty: 'icons/bounty.png',
-    power: 'icons/power.png',
-  }
-  const iconSrc = timer.id === 'daynight' ? undefined : iconSrcMap[timer.id]
+  const iconSrc =
+    timer.id === 'daynight'
+      ? undefined
+      : (customIconSrc || DEFAULT_ICON_MAP[timer.id])
 
   const progressClassName = [
     'timer-icon__progress',
@@ -83,7 +90,7 @@ export const TimerIcon: React.FC<TimerIconProps> = ({
             loading="lazy"
           />
         )}
-        {timer.id === 'daynight' && dayPhase && (
+        {timer.id === 'daynight' && dayPhase && !iconSrc && (
           <div className="timer-icon__emoji" aria-hidden="true">
             {dayPhase === 'day' ? '☀️' : '🌙'}
           </div>

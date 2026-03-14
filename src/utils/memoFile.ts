@@ -45,4 +45,23 @@ export function saveMemoToFile(
   }
 }
 
+/**
+ * 画像ファイルを Data URL で読み込む。失敗時は空文字を返し、例外は出さない。
+ */
+export async function readFileAsDataUrl(
+  file: File | null | undefined,
+): Promise<string> {
+  if (!file || !file.type.startsWith('image/')) return ''
+  try {
+    return await new Promise<string>((resolve) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve((reader.result as string) ?? '')
+      reader.onerror = () => resolve('')
+      reader.readAsDataURL(file)
+    })
+  } catch {
+    return ''
+  }
+}
+
 export { DEFAULT_MEMO_FILENAME }

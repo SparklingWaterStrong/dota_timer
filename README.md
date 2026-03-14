@@ -51,11 +51,17 @@ npm run preview
 
 http://localhost:4173 でビルド済みのアプリを確認できます。
 
-## 技術スタック
+## サイトアイコン（ファビコン）の配置
 
-- **React 19** + **TypeScript**
-- **Vite 8**（ビルド・開発サーバー）
-- スタイルは CSS（昼夜でテーマ切り替え）
+ブラウザのタブなどに表示されるサイトアイコンは **`public/` フォルダ** に置きます。
+
+| 置く場所 | 説明 |
+|----------|------|
+| `public/favicon.svg` | 現在参照しているアイコン（SVG）。このファイルを差し替えれば反映されます。 |
+| `public/favicon.ico` | 従来形式。使う場合は `index.html` の `<link rel="icon">` を `.ico` 用に変更してください。 |
+
+- **Vite** では `public/` 内のファイルがそのままルートパスで配信されます（例: `public/favicon.svg` → `/favicon.svg`）。
+- `index.html` の `<head>` で `<link rel="icon" type="image/svg+xml" href="/favicon.svg" />` のように参照しているので、**`public/favicon.svg` を用意するか、同じパスで別形式（例: `favicon.ico`）にした場合は `index.html` の `href` を合わせて変更**してください。
 
 ## ライセンス
 
