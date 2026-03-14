@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
+import { parseNotificationFlagFromText } from './utils/configFile'
 import { StartScreen } from './components/StartScreen'
 import { TimerScreen } from './components/TimerScreen'
 
@@ -25,6 +26,28 @@ export type TimerState = {
 const PRE_START_SECONDS = 40
 const MEMO_STORAGE_KEY = 'dota_timer_memo'
 const ICON_CONFIG_KEY = 'dota_timer_icons'
+const NOTIFICATION_FLAG_KEY = 'dota_timer_notification_flag'
+
+function getStoredNotificationFlag(): boolean {
+  if (typeof window === 'undefined') return false
+  try {
+    const v = localStorage.getItem(NOTIFICATION_FLAG_KEY)
+    if (v === 'true') return true
+    if (v === 'false') return false
+    return false
+  } catch {
+    return false
+  }
+}
+
+function setStoredNotificationFlag(value: boolean): void {
+  if (typeof window === 'undefined') return
+  try {
+    localStorage.setItem(NOTIFICATION_FLAG_KEY, String(value))
+  } catch {
+    /* ignore */
+  }
+}
 
 function getStoredMemo(): string {
   if (typeof window === 'undefined') return ''
@@ -108,6 +131,12 @@ function buildTimers(effectiveElapsedSeconds: number): TimerState[] {
   })
 }
 
+function getInitialNotificationPermission(): NotificationPermission {
+  if (typeof window === 'undefined' || !('Notification' in window))
+    return 'denied'
+  return Notification.permission
+}
+
 function App() {
   const [screenState, setScreenState] = useState<ScreenState>('start')
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
@@ -115,10 +144,40 @@ function App() {
   const [iconConfig, setIconConfig] = useState<Record<string, string>>(
     getStoredIconConfig,
   )
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
+    getInitialNotificationPermission,
+  )
+  const [notificationFlagEnabled, setNotificationFlagEnabled] = useState(getStoredNotificationFlag)
+  const notifiedKeysRef = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     setStoredMemo(memo)
   }, [memo])
+
+  useEffect(() => {
+    setStoredNotificationFlag(notificationFlagEnabled)
+  }, [notificationFlagEnabled])
+
+  useEffect(() => {
+    const syncPermission = () => {
+      if (typeof window !== 'undefined' && 'Notification' in window)
+        setNotificationPermission(Notification.permission)
+    }
+    window.addEventListener('focus', syncPermission)
+    return () => window.removeEventListener('focus', syncPermission)
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.location.protocol === 'file:') return
+    const url = new URL('config.txt', window.location.href).href
+    fetch(url)
+      .then((r) => (r.ok ? r.text() : Promise.reject(new Error('not found'))))
+      .then((text) => {
+        const flag = parseNotificationFlagFromText(text)
+        if (flag !== null) setNotificationFlagEnabled(flag)
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     setStoredIconConfig(iconConfig)
@@ -148,6 +207,45 @@ function App() {
     [effectiveElapsed],
   )
 
+  useEffect(() => {
+    if (screenState !== 'running') return
+    if (!notificationFlagEnabled) return
+    if (typeof window === 'undefined' || !('Notification' in window) || !window.isSecureContext) return
+    if (Notification.permission !== 'granted') return
+
+    for (const timer of timers) {
+      const cycleIndex = Math.floor(Math.max(0, effectiveElapsed) / timer.duration)
+      try {
+        if (timer.remaining === 30) {
+          const key = `${timer.id}-${cycleIndex}-30`
+          if (!notifiedKeysRef.current.has(key)) {
+            notifiedKeysRef.current.add(key)
+            new Notification('Dota 2 Timers', {
+              body: `${timer.label} まであと30秒`,
+              icon: '/favicon.svg',
+              requireInteraction: false,
+              tag: key,
+            })
+          }
+        }
+        if (timer.isCycleHit) {
+          const key = `${timer.id}-${cycleIndex}-0`
+          if (!notifiedKeysRef.current.has(key)) {
+            notifiedKeysRef.current.add(key)
+            new Notification('Dota 2 Timers', {
+              body: `${timer.label} のタイマーが 0 になりました`,
+              icon: '/favicon.svg',
+              requireInteraction: false,
+              tag: key,
+            })
+          }
+        }
+      } catch {
+        /* 通知失敗時は無視 */
+      }
+    }
+  }, [screenState, timers, notificationPermission, notificationFlagEnabled, effectiveElapsed])
+
   const totalElapsedForDisplay = Math.max(0, effectiveElapsed)
 
   const preStartRemaining =
@@ -159,6 +257,34 @@ function App() {
     setElapsedSeconds(0)
     setScreenState('running')
   }
+
+  const handleRequestNotificationPermission = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) return
+    const result = await Notification.requestPermission()
+    setNotificationPermission(result)
+  }
+
+  const handleTestNotification = () => {
+    if (!notificationFlagEnabled) return
+    if (typeof window === 'undefined' || !('Notification' in window) || notificationPermission !== 'granted') return
+    if (!window.isSecureContext) return
+    try {
+      const icon = window.location.protocol === 'file:' ? undefined : '/favicon.svg'
+      new Notification('Dota 2 Timers', {
+        body: 'テスト通知です。通知は正常に動作しています。',
+        icon,
+        tag: 'test',
+      })
+    } catch {
+      /* 無視 */
+    }
+  }
+
+  const canUseNotifications =
+    typeof window !== 'undefined' && 'Notification' in window && window.isSecureContext
+
+  const showNotificationSettings =
+    typeof window !== 'undefined' && window.location.protocol !== 'file:'
 
   const handleReset = () => {
     setElapsedSeconds(0)
@@ -192,6 +318,13 @@ function App() {
           onMemoChange={setMemo}
           iconConfig={iconConfig}
           onIconChange={handleIconChange}
+          notificationPermission={notificationPermission}
+          notificationFlagEnabled={notificationFlagEnabled}
+          canUseNotifications={canUseNotifications}
+          showNotificationSettings={showNotificationSettings}
+          onNotificationFlagChange={setNotificationFlagEnabled}
+          onRequestNotificationPermission={handleRequestNotificationPermission}
+          onTestNotification={handleTestNotification}
           onReset={handleReset}
           onAdjustSeconds={handleAdjustSeconds}
         />
