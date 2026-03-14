@@ -1,5 +1,6 @@
 /**
  * メモのテキストファイル読み書き（ローカル・file:// 両対応、エラー時は例外を出さない）
+ * 保存先は常にデフォルトのファイル名（DEFAULT_MEMO_FILENAME）のみ。指定先の状態は持たない。
  */
 
 const DEFAULT_MEMO_FILENAME = 'dota_timer_memo.txt'

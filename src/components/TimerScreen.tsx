@@ -1,7 +1,12 @@
 import React, { useRef } from 'react'
 
 import type { DayPhase, TimerState } from '../App'
-import { readFileAsDataUrl, readFileAsText, saveMemoToFile } from '../utils/memoFile'
+import {
+  DEFAULT_MEMO_FILENAME,
+  readFileAsDataUrl,
+  readFileAsText,
+  saveMemoToFile,
+} from '../utils/memoFile'
 import { TimerIcon } from './TimerIcon'
 
 type TimerScreenProps = {
@@ -50,7 +55,7 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   }
 
   const handleSaveToFile = () => {
-    saveMemoToFile(memo)
+    saveMemoToFile(memo, DEFAULT_MEMO_FILENAME)
   }
 
   const handleIconSettingClick = (timerId: string) => {
