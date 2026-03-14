@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useRef } from 'react'
 
 import type { DayPhase, TimerState } from '../App'
+import { readFileAsText, saveMemoToFile } from '../utils/memoFile'
 import { TimerIcon } from './TimerIcon'
 
 type TimerScreenProps = {
@@ -24,10 +25,27 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
   onReset,
   onAdjustSeconds,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const safeTotal = Math.max(0, Math.floor(totalElapsedSeconds))
   const totalM = Math.floor(safeTotal / 60)
   const totalS = safeTotal % 60
   const totalLabel = `${totalM}:${totalS.toString().padStart(2, '0')}`
+
+  const handleLoadFromFile = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const text = await readFileAsText(file)
+    onMemoChange(text)
+    e.target.value = ''
+  }
+
+  const handleSaveToFile = () => {
+    saveMemoToFile(memo)
+  }
 
   return (
     <div className="app__inner">
@@ -90,6 +108,30 @@ export const TimerScreen: React.FC<TimerScreenProps> = ({
         </div>
 
         <div className="timer-screen__memo">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".txt,text/plain"
+            className="timer-screen__file-input"
+            aria-hidden
+            onChange={handleFileSelect}
+          />
+          <div className="timer-screen__memo-actions">
+            <button
+              type="button"
+              className="button button--ghost button--small"
+              onClick={handleLoadFromFile}
+            >
+              ファイルから読み込み
+            </button>
+            <button
+              type="button"
+              className="button button--ghost button--small"
+              onClick={handleSaveToFile}
+            >
+              ファイルに保存
+            </button>
+          </div>
           <label className="timer-screen__memo-label">
             メモ
             <textarea
